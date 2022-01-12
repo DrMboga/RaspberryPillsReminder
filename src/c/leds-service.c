@@ -49,7 +49,7 @@ int main()
                     }
                 }
             }
-            printf("Received message with action %d and led number %d:\n", received.LedAction, received.LedNumber);
+            logReceivedMessageInfo(received.LedNumber, received.LedAction, received.LedColor);
 
             if(received.LedAction == LED_ON || received.LedAction == LED_OFF)
             {
@@ -325,4 +325,35 @@ int RewriteLedsState(int ledNumber, int color, int action, struct LedStateRow* l
         }
     }
     return CloseFile(ledsStateFilePointer);
+}
+
+/*
+* Prints to the console message with information
+*/
+void logReceivedMessageInfo(int ledNumber, int action, int color)
+{
+    char stringAction[6];
+    char stringColor[6];
+    switch (action)
+    {
+        case LED_BLINK:
+            strcpy(stringAction, "BLINK");
+            break;
+        case LED_OFF:
+            strcpy(stringAction, "OFF");
+            break;
+        case LED_ON:
+            strcpy(stringAction, "ON");
+            break;
+    }  
+    switch (color)
+    {
+    case GREEN_LED:
+        strcpy(stringColor, "GREEN");
+        break;
+        strcpy(stringColor, "RED");
+        break;
+    }
+
+    printf("Received message with action %s, led number %d and color %s\n", stringAction, ledNumber, stringColor);
 }

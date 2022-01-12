@@ -39,3 +39,8 @@ int SetUpLedsState(struct LedStateRow* ledsState, struct PinMapping* ledPins);
 * Find LED pin and applies an action to it
 */
 void applyLedAction(int ledNumber, int color, int action, struct PinMapping* ledPins);
+
+/*
+* Prints to the console message with information
+*/
+void logReceivedMessageInfo(int ledNumber, int action, int color);
