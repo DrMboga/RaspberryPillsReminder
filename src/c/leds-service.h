@@ -4,7 +4,7 @@
 static const char LEDS_STATE_FILE_NAME[] = "leds-state.csv"; // File name with the LEDs state
 static const char EMPTY_TIME[] = "--:--"; // Stub for empty time in a csv report
 
-#define LED_OFF 0 // LED off state
+#define LEDS_OFF 0 // LED off state
 #define LED_GREEN_ON 1 // Green LED ON state
 #define LED_GREEN_BLINK 2 // Green LED BLINK state
 #define LED_RED_ON 4 // Red LED ON state
@@ -28,7 +28,7 @@ struct LedStateRow* ReadLedsState();
 /*
 * Writes a new LEDs state into csv file
 */
-int RewriteLedsState(struct LedStateRow* ledsState);
+int RewriteLedsState(int ledNumber, int color, int action, struct LedStateRow* ledsState);
 
 /*
 * Sets up LEDs state in the board

@@ -1,15 +1,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <sys/msg.h>
+#include <time.h>
 #include "leds-service.h"
 #include "file-access.h"
 #include "leds.h"
-
-#define GREEN 42
-#define RED 24
-#define ON 142
-#define OFF 124
-#define BLINK 100
+#include "messaging.h"
 
 int main()
 {
@@ -27,10 +25,117 @@ int main()
     }
 
     // Initialize Message qeue
+    int messageQueueId = InitializeMessageQueue(LED_CONTROL_MESSAGE_TYPE);
+    
+    if(messageQueueId >= 0)
+    {
+        printf("Successfully got messageQueueId: %d\n", messageQueueId);
+        while(1) 
+        {
+            printf("Waiting for incoming message...\n");
+            struct LedsControlMsessage received;
+            // If no LEDs is blinking, current thread is sleeping while waiting new message from the queue
+            if (msgrcv(messageQueueId, &received, sizeof(received.LedAction) + sizeof(received.LedNumber) + sizeof(received.LedColor), LED_CONTROL_MESSAGE_TYPE, 0)< 0)
+            {
+                PrintMessagingError(errno);
+                if(errno == EINVAL || errno == EIDRM)
+                {
+                    printf("Re-initializing the queue\n");
+                    messageQueueId = InitializeMessageQueue(LED_CONTROL_MESSAGE_TYPE);
+                    printf("New messageQueueId: %d\n", messageQueueId);
+                    if(messageQueueId == -1)
+                    {
+                        return 1;
+                    }
+                }
+            }
+            printf("Received message with action %d and led number %d:\n", received.LedAction, received.LedNumber);
 
+            if(received.LedAction == LED_ON || received.LedAction == LED_OFF)
+            {
+                applyLedAction(received.LedNumber, received.LedColor, received.LedAction, ledPins);
+                RewriteLedsState(received.LedNumber, received.LedColor, received.LedAction, ledsState);
+            }
+
+            // if(received.LedAction == LED_BLINK)
+            // {
+            //     int blinkingLedPin = received.LedPin;
+            //     if(InitLed(blinkingLedPin) < 0)
+            //     {
+            //         printf("InitLed failed.\n");
+            //         return 1;
+            //     }
+            //     printf("Start blinking...\n");
+            //     int continueBlinking = 1;
+            //     while (continueBlinking)
+            //     {
+            //         printf("--Led On!--\n");
+            //         TurnBiColorLedOn(blinkingLedPin);
+            //         sleepMilliseconds(500);
+            //         printf("--Led Off!--\n");
+            //         TurnBiColorLedOff(blinkingLedPin);
+
+            //         // While blinking, there is no need to freeze thread while checking the message in the queue
+            //         if (msgrcv(messageQueueId, &received, sizeof(received.LedAction) + sizeof(received.LedPin), LED_CONTROL_MESSAGE_TYPE, IPC_NOWAIT)< 0){
+            //             if(errno == ENOMSG)
+            //             {
+            //                 printf("No message in the queue, sleeping\n");
+            //                 sleepMilliseconds(500);
+            //             } else 
+            //             {
+            //                 PrintMessagingError(errno);
+            //                 if(InitLeds() < 0)
+            //                 {
+            //                     return 1;
+            //                 }
+            //                 if(errno == EINVAL || errno == EIDRM)
+            //                 {
+            //                     printf("Re-initializing the queue\n");
+            //                     messageQueueId = InitializeMessageQueue();
+            //                     printf("New messageQueueId: %d\n", messageQueueId);
+            //                     if(messageQueueId == -1)
+            //                     {
+            //                         return 1;
+            //                     }
+            //                 }
+            //                 else
+            //                 {
+            //                     return 1;
+            //                 }
+            //                 continueBlinking = 0;
+            //             }
+            //         } else {
+            //             printf("Received message in the second cycle with action %d and led PIN number %d:\n", received.LedAction, received.LedPin);
+            //             if(received.LedPin == blinkingLedPin && received.LedAction != LED_BLINK)
+            //             {
+            //                 continueBlinking = 0;
+            //             }
+            //             if(received.LedPin != blinkingLedPin && received.LedAction == LED_BLINK)
+            //             {
+            //                 // Change blinking LED
+            //                 if(SwitchLed(blinkingLedPin, LED_OFF) < 0)
+            //                 {
+            //                     return 1;
+            //                 }
+            //                 blinkingLedPin = received.LedPin;
+            //             }
+            //             if(received.LedAction == LED_ON || received.LedAction == LED_OFF)
+            //             {
+            //                 if(SwitchLed(received.LedPin, received.LedAction) < 0)
+            //                 {
+            //                     return 1;
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
+        }
+        msgctl(messageQueueId, IPC_RMID, NULL);
+    }
 
     free(ledsState);
     free(ledPins);
+    return 0;
 }
 
 /*
@@ -44,24 +149,24 @@ int SetUpLedsState(struct LedStateRow* ledsState, struct PinMapping* ledPins)
     {
         switch(ledsState[i].state)
         {
-            case LED_OFF:
-                action = OFF;
+            case LEDS_OFF:
+                action = LED_OFF;
                 break;
             case LED_GREEN_ON:
-                action = ON;
-                color = GREEN;
+                action = LED_ON;
+                color = GREEN_LED;
                 break;
             case LED_GREEN_BLINK:
-                action = BLINK;
-                color = GREEN;
+                action = LED_BLINK;
+                color = GREEN_LED;
                 break;
             case LED_RED_ON:
-                action = ON;
-                color = RED;
+                action = LED_ON;
+                color = RED_LED;
                 break;
             case LED_RED_BLINK:
-                action = BLINK;
-                color = RED;
+                action = LED_BLINK;
+                color = RED_LED;
                 break;
         }
         applyLedAction(ledsState[i].ledNumber, color, action, ledPins);
@@ -80,28 +185,28 @@ void applyLedAction(int ledNumber, int color, int action, struct PinMapping* led
     {
         if(ledPins[j].ledNumber == ledNumber)
         {
+            InitLed(ledPins[j].redPin);
+            InitLed(ledPins[j].greenPin);
             switch(action)
             {
-                case OFF:
-                    InitLed(ledPins[j].redPin);
+                case LED_OFF:
                     TurnBiColorLedOff(ledPins[j].redPin);
-                    InitLed(ledPins[j].greenPin);
                     TurnBiColorLedOff(ledPins[j].greenPin);
                     break;
-                case ON:
+                case LED_ON:
                     switch(color)
                     {
-                        case GREEN:
-                            InitLed(ledPins[j].redPin);
-                            TurnBiColorLedOn(ledPins[j].redPin);
-                            break;
-                        case RED:
-                            InitLed(ledPins[j].greenPin);
+                        case GREEN_LED:
+                            TurnBiColorLedOff(ledPins[j].redPin);
                             TurnBiColorLedOn(ledPins[j].greenPin);
+                            break;
+                        case RED_LED:
+                            TurnBiColorLedOff(ledPins[j].greenPin);
+                            TurnBiColorLedOn(ledPins[j].redPin);
                             break;
                     }
                     break;
-                case BLINK:
+                case LED_BLINK:
                     // TODO: setup blink in the separate thread
                     break;
             }
@@ -130,7 +235,7 @@ struct LedStateRow* ReadLedsState()
         for (int i = 0; i < LEDS_COUNT; i++)
         {
             leds[i].ledNumber = LEDS_COUNT - 1 - i;
-            leds[i].state = LED_OFF;
+            leds[i].state = LEDS_OFF;
             strcpy(leds[i].time, EMPTY_TIME);
         }
 
@@ -160,8 +265,56 @@ struct LedStateRow* ReadLedsState()
 /*
 * Writes a new LEDs state into csv file
 */
-int RewriteLedsState(struct LedStateRow* ledsState)
+int RewriteLedsState(int ledNumber, int color, int action, struct LedStateRow* ledsState)
 {
+    for (int i = 0; i < LEDS_COUNT; i++)
+    {
+        if(ledsState[i].ledNumber == ledNumber)
+        {
+            // curent time
+            char currentTime[6];
+            time_t rawtime;
+            struct tm * timeinfo;
+            time ( &rawtime );
+            timeinfo = localtime ( &rawtime );
+            strftime(currentTime, 6, "%R", timeinfo);
+            switch(action)
+            {
+                case LED_OFF:
+                    ledsState[i].state = LEDS_OFF;
+                    strcpy(ledsState[i].time, EMPTY_TIME);
+                    break;
+                case LED_ON:
+                    switch(color)
+                    {
+                        case GREEN_LED:
+                            ledsState[i].state = LED_GREEN_ON;
+                            strcpy(ledsState[i].time, currentTime);
+                            break;
+                        case RED_LED:
+                            ledsState[i].state = LED_RED_ON;
+                            strcpy(ledsState[i].time, currentTime);
+                            break;
+                    }
+                    break;
+                case LED_BLINK:
+                    switch(color)
+                    {
+                        case GREEN_LED:
+                            ledsState[i].state = LED_GREEN_BLINK;
+                            strcpy(ledsState[i].time, currentTime);
+                            break;
+                        case RED_LED:
+                            ledsState[i].state = LED_RED_BLINK;
+                            strcpy(ledsState[i].time, currentTime);
+                            break;
+                    }
+                    break;
+            }
+            break;
+        }
+    }
+    
     FILE* ledsStateFilePointer = OpenFileForRewrite(LEDS_STATE_FILE_NAME);
     for (int i = 0; i < LEDS_COUNT; i++)
     {
