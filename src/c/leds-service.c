@@ -4,10 +4,21 @@
 #include <errno.h>
 #include <sys/msg.h>
 #include <time.h>
+#include <pthread.h>
 #include "leds-service.h"
 #include "file-access.h"
 #include "leds.h"
 #include "messaging.h"
+#include "utils.h"
+
+// Blink function reference
+void *blinkFunc();
+// Synchronisation critical section
+pthread_mutex_t blinkMutex = PTHREAD_MUTEX_INITIALIZER;
+// Array which contains a PED pins which should blink
+int LedsToBlink[LEDS_COUNT];
+// Amount of blinking LEDs
+int BlinkingLedsCount = 0;
 
 int main()
 {
@@ -51,84 +62,8 @@ int main()
             }
             logReceivedMessageInfo(received.LedNumber, received.LedAction, received.LedColor);
 
-            if(received.LedAction == LED_ON || received.LedAction == LED_OFF)
-            {
-                applyLedAction(received.LedNumber, received.LedColor, received.LedAction, ledPins);
-                RewriteLedsState(received.LedNumber, received.LedColor, received.LedAction, ledsState);
-            }
-
-            // if(received.LedAction == LED_BLINK)
-            // {
-            //     int blinkingLedPin = received.LedPin;
-            //     if(InitLed(blinkingLedPin) < 0)
-            //     {
-            //         printf("InitLed failed.\n");
-            //         return 1;
-            //     }
-            //     printf("Start blinking...\n");
-            //     int continueBlinking = 1;
-            //     while (continueBlinking)
-            //     {
-            //         printf("--Led On!--\n");
-            //         TurnBiColorLedOn(blinkingLedPin);
-            //         sleepMilliseconds(500);
-            //         printf("--Led Off!--\n");
-            //         TurnBiColorLedOff(blinkingLedPin);
-
-            //         // While blinking, there is no need to freeze thread while checking the message in the queue
-            //         if (msgrcv(messageQueueId, &received, sizeof(received.LedAction) + sizeof(received.LedPin), LED_CONTROL_MESSAGE_TYPE, IPC_NOWAIT)< 0){
-            //             if(errno == ENOMSG)
-            //             {
-            //                 printf("No message in the queue, sleeping\n");
-            //                 sleepMilliseconds(500);
-            //             } else 
-            //             {
-            //                 PrintMessagingError(errno);
-            //                 if(InitLeds() < 0)
-            //                 {
-            //                     return 1;
-            //                 }
-            //                 if(errno == EINVAL || errno == EIDRM)
-            //                 {
-            //                     printf("Re-initializing the queue\n");
-            //                     messageQueueId = InitializeMessageQueue();
-            //                     printf("New messageQueueId: %d\n", messageQueueId);
-            //                     if(messageQueueId == -1)
-            //                     {
-            //                         return 1;
-            //                     }
-            //                 }
-            //                 else
-            //                 {
-            //                     return 1;
-            //                 }
-            //                 continueBlinking = 0;
-            //             }
-            //         } else {
-            //             printf("Received message in the second cycle with action %d and led PIN number %d:\n", received.LedAction, received.LedPin);
-            //             if(received.LedPin == blinkingLedPin && received.LedAction != LED_BLINK)
-            //             {
-            //                 continueBlinking = 0;
-            //             }
-            //             if(received.LedPin != blinkingLedPin && received.LedAction == LED_BLINK)
-            //             {
-            //                 // Change blinking LED
-            //                 if(SwitchLed(blinkingLedPin, LED_OFF) < 0)
-            //                 {
-            //                     return 1;
-            //                 }
-            //                 blinkingLedPin = received.LedPin;
-            //             }
-            //             if(received.LedAction == LED_ON || received.LedAction == LED_OFF)
-            //             {
-            //                 if(SwitchLed(received.LedPin, received.LedAction) < 0)
-            //                 {
-            //                     return 1;
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
+            applyLedAction(received.LedNumber, received.LedColor, received.LedAction, ledPins);
+            RewriteLedsState(received.LedNumber, received.LedColor, received.LedAction, ledsState);
         }
         msgctl(messageQueueId, IPC_RMID, NULL);
     }
@@ -187,6 +122,7 @@ void applyLedAction(int ledNumber, int color, int action, struct PinMapping* led
         {
             InitLed(ledPins[j].redPin);
             InitLed(ledPins[j].greenPin);
+            stopBlink(ledPins[j].redPin, ledPins[j].greenPin);
             switch(action)
             {
                 case LED_OFF:
@@ -207,7 +143,17 @@ void applyLedAction(int ledNumber, int color, int action, struct PinMapping* led
                     }
                     break;
                 case LED_BLINK:
-                    // TODO: setup blink in the separate thread
+                    switch(color)
+                    {
+                        case GREEN_LED:
+                            TurnBiColorLedOff(ledPins[j].redPin);
+                            startBlink(ledPins[j].greenPin);
+                            break;
+                        case RED_LED:
+                            TurnBiColorLedOff(ledPins[j].greenPin);
+                            startBlink(ledPins[j].redPin);
+                            break;
+                    }
                     break;
             }
             break;
@@ -351,9 +297,143 @@ void logReceivedMessageInfo(int ledNumber, int action, int color)
     case GREEN_LED:
         strcpy(stringColor, "GREEN");
         break;
+    case RED_LED:
         strcpy(stringColor, "RED");
         break;
     }
 
     printf("Received message with action %s, led number %d and color %s\n", stringAction, ledNumber, stringColor);
+}
+
+/*
+* Adds pin number to the state array and start new thread for blinking
+*/
+void startBlink(int ledPin)
+{
+    // Check, if state array doesn't have elements yet, then we need to start a new thread
+    int needToSatrtNewThread = 0;
+    if(BlinkingLedsCount == 0)
+    {
+        needToSatrtNewThread = 1;
+    }
+    // Entering critical section
+    pthread_mutex_lock( &blinkMutex );
+    int needToAddPinToArray = 1;
+    // Check if current led pin is already in the state array
+    for (int i = 0; i < BlinkingLedsCount; i++)
+    {
+        if(LedsToBlink[i] == ledPin)
+        {
+            needToAddPinToArray = 0;
+        }
+    }
+    // If current led is not in the state array, add it to the array
+    if(needToAddPinToArray == 1)
+    {
+        LedsToBlink[BlinkingLedsCount] = ledPin;
+        BlinkingLedsCount++;
+    }
+
+    // Exit critical section
+    pthread_mutex_unlock( &blinkMutex );
+
+    if(needToSatrtNewThread == 1)
+    {
+        // If no leds are blinking yet, starting a new thread with blink procedure
+        pthread_t threadForBlinking;
+        int threadCreated;
+        if( (threadCreated=pthread_create( &threadForBlinking, NULL, &blinkFunc, NULL)) )
+        {
+            printf("Thread creation failed: %d\n", threadCreated);
+        }
+    }
+}
+
+/*
+* Remove pin number from the state array
+*/
+void stopBlink(int redPin, int greenPin)
+{
+    int indexToDelete = -1;
+    for (int i = 0; i < BlinkingLedsCount; i++)
+    {
+        if(LedsToBlink[i] == redPin || LedsToBlink[i] == greenPin)
+        {
+            indexToDelete = i;
+        }
+    }
+
+    if(indexToDelete < 0)
+    {
+        return;
+    }
+
+    // If indexToDelete is not the last in the array, so we have to pop it and shift the rest elements to the left
+    // Entering critical section
+    pthread_mutex_lock( &blinkMutex );
+    for (int i = indexToDelete; i < BlinkingLedsCount; i++)
+    {
+        // Shift next item to the left
+        if(i < BlinkingLedsCount - 1)
+        {
+            printf("Removing pin number %d from blinking LEDs array index %d and replacing it by %d\n", LedsToBlink[i], i, LedsToBlink[i+1]);
+            LedsToBlink[i] = LedsToBlink[i+1];
+        }
+        else
+        {
+            // Last element
+            printf("Removing pin number %d from blinking LEDs array index %d\n", LedsToBlink[i], i);
+            LedsToBlink[i] = -1;
+        }
+    }
+    BlinkingLedsCount--;
+    // Exit critical section
+    pthread_mutex_unlock( &blinkMutex );
+}
+
+void *blinkFunc()
+{
+    printf("New thread for blink is started\n");
+    int blinkingLedsCountAtTheMoment = 0;
+    // Entering critical section
+    pthread_mutex_lock( &blinkMutex );
+    blinkingLedsCountAtTheMoment = BlinkingLedsCount;
+    // Exit critical section
+    pthread_mutex_unlock( &blinkMutex );
+
+    int ledsState = 1;
+
+    printf("Number of LEDs to blink %d\n", blinkingLedsCountAtTheMoment);
+    while (blinkingLedsCountAtTheMoment > 0)
+    {
+        // Entering critical section
+        pthread_mutex_lock( &blinkMutex );
+        for (int i = 0; i < BlinkingLedsCount; i++)
+        {
+            if(ledsState == 1)
+            {
+                TurnBiColorLedOn(LedsToBlink[i]);
+            }
+            else
+            {
+                TurnBiColorLedOff(LedsToBlink[i]);
+            }
+        }
+        blinkingLedsCountAtTheMoment = BlinkingLedsCount;
+        // Exit critical section
+        pthread_mutex_unlock( &blinkMutex );
+
+        if(ledsState == 1)
+        {
+            ledsState = 0;
+        }
+        else
+        {
+            ledsState = 1;
+        }
+
+        sleepMilliseconds(500);
+    }
+
+    printf("Blinking thread exits.\n");
 }

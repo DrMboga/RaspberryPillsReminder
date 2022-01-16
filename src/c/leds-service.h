@@ -44,3 +44,13 @@ void applyLedAction(int ledNumber, int color, int action, struct PinMapping* led
 * Prints to the console message with information
 */
 void logReceivedMessageInfo(int ledNumber, int action, int color);
+
+/*
+* Adds pin number to the state array and start new thread for blinking
+*/
+void startBlink(int ledPin);
+
+/*
+* Remove pin number from the state array
+*/
+void stopBlink(int redPin, int greenPin);

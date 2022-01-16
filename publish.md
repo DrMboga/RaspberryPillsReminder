@@ -7,7 +7,7 @@ scp -r ./src/c/*.* pi@192.168.0.67:/home/pi/projects/pills-reminder
 
  - leds service
  ```bash
-gcc leds-service.c pins-mapping.c file-access.c leds.c utils.c messaging.c -o leds-service.out -l pigpio
+gcc leds-service.c pins-mapping.c file-access.c leds.c utils.c messaging.c -o leds-service.out -l pigpio -l pthread
  ```
  - test message sender
  ```bash
