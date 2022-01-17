@@ -1,0 +1,11 @@
+[Unit]
+Description=LEDs control service
+[Service]
+Type=simple
+ExecStart=/home/pi/projects/pills-reminder/leds-service.out
+WorkingDirectory=/home/pi/projects/pills-reminder/
+Restart=on-failure
+RestartSec=10
+KillMode=process
+[Install]
+WantedBy=multi-user.target
