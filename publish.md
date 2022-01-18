@@ -3,6 +3,7 @@
  - Copy code to the PI
  ```bash
 scp -r ./src/c/*.* pi@192.168.0.67:/home/pi/projects/pills-reminder
+scp -r ./src/web-host/*.* pi@192.168.0.67:/home/pi/projects/pills-reminder
  ```
 
  - leds service

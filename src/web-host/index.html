@@ -1,0 +1,26 @@
+<html>
+    <head>
+        <title>Pills reminder</title>
+    </head>
+    <body>
+        <h1>Pills reminder project</h1>
+        <p>If you see this page, then static web site is not published yet.</p>
+        <p>You can try to send commands to Raspberry pills reminder like this:</p>
+        <ul>
+            <li>
+                POST .../led/0/green/on
+            </li>
+            <li>
+                POST .../servo/45
+            </li>
+            <li>
+                POST .../start
+            </li>
+        </ul>
+        <p>Where `led` is for LEDs control, second parameter is the LED number from 0 to 6. 
+            Next parameter is the color: 'green' or 'red'. 
+            Last parameter is action which can be 'on', 'off' and 'blink'</p>
+        <p>`servo` is for servo motor control, value is the angle from 0 to 180</p>
+        <p>`start` is the command for starting the main program</p>
+    </body>
+</html>
