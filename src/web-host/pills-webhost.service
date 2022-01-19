@@ -1,0 +1,11 @@
+[Unit]
+Description=Pills web host
+After=network.target
+[Service]
+ExecStart=/usr/bin/python3 -u web-server.py
+WorkingDirectory=/home/pi/projects/pills-reminder/
+Restart=on-failure
+RestartSec=10
+KillMode=process
+[Install]
+WantedBy=multi-user.target

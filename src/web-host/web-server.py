@@ -29,6 +29,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if len(params) == 4 and params[0] == "led" and params[1].isnumeric():
             ledNumber = int(params[1])
             if ledNumber >= 0 and ledNumber < 7 and (params[2] == "green" or params[2] == "red") and (params[3] == "on" or params[3] == "off" or params[3] == "blink"):
+                # Calling shell command which sends the POSIX MQ message
                 command = "sudo ./message-sender.out" + " " + params[0] + " " + params[1] + " " + params[2] + " " + params[3]
                 print(command)
                 os.system(command)
@@ -38,6 +39,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         elif len(params) == 2 and params[0] == "servo" and params[1].isnumeric():
             angle = int(params[1])
             if angle >= 0 and angle <= 180:
+                # Calling shell command which sends the POSIX MQ message                
                 command = "sudo ./message-sender.out" + " " + params[0] + " " + params[1]
                 print(command)
                 os.system(command)
@@ -45,6 +47,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             else:
                 self.send_response(400)
         elif len(params) == 1 and params[0] == "start":
+            # Calling shell command which sends the POSIX MQ message            
             command = "sudo ./message-sender.out" + " " + params[0] 
             print(command)
             os.system(command)

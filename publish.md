@@ -19,12 +19,15 @@ gcc message-sender.c messaging.c -o message-sender.out
 ```bash
 # Copy service description to the systemd folder
 sudo cp leds.service /etc/systemd/system/leds.service
+sudo cp pills-webhost.service /etc/systemd/system/pills-webhost.service
 # Restart daemon
 sudo systemctl daemon-reload
 # Start service
 sudo systemctl start leds.service
+sudo systemctl start pills-webhost.service
 # Enable auto start
 sudo systemctl enable leds.service
+sudo systemctl enable pills-webhost.service
 
 
 sudo systemctl stop leds.service
