@@ -52,6 +52,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             print(command)
             os.system(command)
             self.send_response(200)
+        elif len(params) == 3 and params[0] == "gpio" and params[1].isnumeric():
+            pin = int(params[1])
+            if params[2] == "on" or params[2] == "off":
+                # Calling shell command which sends the POSIX MQ message
+                command = "sudo ./message-sender.out" + " " + params[0] + " " + params[1] + " " + params[2]
+                print(command)
+                os.system(command)
+                self.send_response(200)
+            else:
+                self.send_response(400)            
         else:
             self.send_response(400)
         self.send_header('Content-type', 'text/html')

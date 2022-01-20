@@ -14,6 +14,10 @@ gcc leds-service.c pins-mapping.c file-access.c leds.c utils.c messaging.c -o le
  ```bash
 gcc servo-service.c file-access.c utils.c messaging.c -o servo-service.out -l wiringPi
  ```
+ - Smart cup service
+ ```bash
+gcc smart-cup.c file-access.c utils.c messaging.c -o smart-cup.out -l wiringPi
+ ```
  - test message sender
  ```bash
 gcc message-sender.c messaging.c -o message-sender.out
@@ -38,6 +42,7 @@ sudo systemctl enable servo.service
 
 
 sudo systemctl stop leds.service
+sudo systemctl stop pills-webhost.service
 sudo systemctl disable leds.service
 # Service logs
 sudo journalctl -u leds.service

@@ -6,6 +6,8 @@
 
 int sendLedMessage(int ledNumber, char* color[], char* action[]);
 int sendServoMessage(int angle);
+int sendStartSmartCupMessage();
+int sendNativeGpioMessage(int pin, char* action[]);
 
 int main(int argc, char *argv[])
 {
@@ -64,6 +66,36 @@ int main(int argc, char *argv[])
         }
     }
 
+    if(strcmp(argv[1], "start") == 0)
+    {
+        if(sendStartSmartCupMessage() < 0)
+        {
+            perror("Could not send message to the queue!");
+        }
+    }
+
+    if(strcmp(argv[1], "gpio") == 0)
+    {
+        if(argc != 4)
+        {
+            printf("Insufficient number of arguments\n");
+            return 0;
+        }
+
+        int pin = atoi(argv[2]);
+
+        if (strcmp(argv[3], "on") != 0 && strcmp(argv[3], "off"))
+        {
+            printf("Wrong action '%s'. It should be only 'on' or 'off'\n", argv[4]);
+            return 0;
+        }
+
+        if(sendNativeGpioMessage(pin, &argv[3]) < 0)
+        {
+            perror("Could not send message to the queue!");
+        }
+    }
+
     return 0;
 }
 
@@ -107,6 +139,7 @@ int sendLedMessage(int ledNumber, char* color[], char* action[])
 
     if(msgsnd(messageQueueId, (void*)&ledMessage, sizeof(ledMessage.LedAction) + sizeof(ledMessage.LedNumber) + sizeof(ledMessage.LedColor), 0) < 0){
         printf("msgsnd error !!\n");
+        return -1;
     }
 
     // msgctl(messageQueueId, IPC_RMID, NULL);
@@ -128,7 +161,61 @@ int sendServoMessage(int angle)
     if(msgsnd(messageQueueId, (void*)&servoMessage, sizeof(servoMessage.angle), 0) < 0)
     {
         printf("msgsnd error !!\n");
+        return -1;
     }
 
     return 0;    
+}
+
+int sendStartSmartCupMessage()
+{
+    int messageQueueId = InitializeMessageQueue(SMART_CUP_CONTROL_MESSAGE_TYPE);
+    if(messageQueueId == -1)
+    {
+        return -1;
+    }
+    printf("Successfully got messageQueueId: %d\n", messageQueueId);
+    struct SmartCupProcessStartMsessage smartCupMessage;
+    smartCupMessage.mtype = SMART_CUP_CONTROL_MESSAGE_TYPE;
+    smartCupMessage.flag = 1;
+
+    if(msgsnd(messageQueueId, (void*)&smartCupMessage, sizeof(smartCupMessage.flag), 0) < 0)
+    {
+        printf("msgsnd error !!\n");
+        return -1;
+    }
+
+    return 0;    
+}
+
+int sendNativeGpioMessage(int pin, char* action[])
+{
+    int actionType;
+    if(strcmp(*action, "on") == 0)
+    {
+        actionType = LED_ON;
+    }
+    if(strcmp(*action, "off") == 0)
+    {
+        actionType = LED_OFF;
+    }
+
+    struct NativeGpioMsessage gpioMessage;
+    gpioMessage.mtype = NATIVE_GPIO_MESSAGE_TYPE;
+    gpioMessage.pin = pin;
+    gpioMessage.action = actionType;
+
+    int messageQueueId = InitializeMessageQueue(NATIVE_GPIO_MESSAGE_TYPE);
+    if(messageQueueId == -1)
+    {
+        return -1;
+    }
+
+    if(msgsnd(messageQueueId, (void*)&gpioMessage, sizeof(gpioMessage.pin) + sizeof(gpioMessage.action), 0) < 0)
+    {
+        printf("msgsnd error !!\n");
+        return -1;
+    }
+
+    return 0;  
 }

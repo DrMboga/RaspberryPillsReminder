@@ -27,3 +27,15 @@ void TurnBiColorLedOff(int pin)
 {
     gpioWrite(pin, 1); // For Bi Color LED we used to set 1 to cathode pin to switch it off
 }
+
+/* Set 1 to GPIO pin*/
+void TurnNormalLedOn(int pin)
+{
+    gpioWrite(pin, 1);
+}
+
+/* Set 0 to GPIO pin*/
+void TurnNormalLedOff(int pin)
+{
+    gpioWrite(pin, 0);
+}

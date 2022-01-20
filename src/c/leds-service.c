@@ -20,6 +20,9 @@ int LedsToBlink[LEDS_COUNT];
 // Amount of blinking LEDs
 int BlinkingLedsCount = 0;
 
+// Native Gpio messages listener function reference
+void *NativeGpioListenerFunc();
+
 int main()
 {
     // Reading LEDs state from csv file
@@ -35,7 +38,15 @@ int main()
         return -1;
     }
 
-    // Initialize Message queue
+    // Start a new thread which listens the Native GPIO control events
+    pthread_t threadForNativeGpio;
+    int threadCreated;
+    if( (threadCreated=pthread_create( &threadForNativeGpio, NULL, &NativeGpioListenerFunc, NULL)) )
+    {
+        printf("Native GPIO thread creation failed: %d\n", threadCreated);
+    }
+
+    // Initialize Leds Message queue
     int messageQueueId = InitializeMessageQueue(LED_CONTROL_MESSAGE_TYPE);
     
     if(messageQueueId >= 0)
@@ -436,4 +447,40 @@ void *blinkFunc()
     }
 
     printf("Blinking thread exits.\n");
+}
+
+void *NativeGpioListenerFunc()
+{
+    int gpioMessageQueueId = InitializeMessageQueue(NATIVE_GPIO_MESSAGE_TYPE);
+    if(gpioMessageQueueId >= 0)
+    {
+        printf("Successfully got GPIO messageQueueId: %d\n", gpioMessageQueueId);
+        while(1)
+        {
+            struct NativeGpioMsessage received;
+            if (msgrcv(gpioMessageQueueId, &received, sizeof(received.pin) + sizeof(received.action), NATIVE_GPIO_MESSAGE_TYPE, 0)< 0)
+            {
+                PrintMessagingError(errno);
+                if(errno == EINVAL || errno == EIDRM)
+                {
+                    printf("Re-initializing the queue\n");
+                    gpioMessageQueueId = InitializeMessageQueue(NATIVE_GPIO_MESSAGE_TYPE);
+                    printf("New messageQueueId: %d\n", gpioMessageQueueId);
+                }
+            }
+            printf("Received native GPIO action %d with pin %d\n", received.action, received.pin);
+
+            InitLed(received.pin);
+            if(received.action == LED_ON)
+            {
+                TurnNormalLedOn(received.pin);
+            }
+            if(received.action == LED_OFF)
+            {
+                TurnNormalLedOff(received.pin);
+            }
+        }
+        msgctl(gpioMessageQueueId, IPC_RMID, NULL);
+    }
+    printf("GPIO thread exits.\n");
 }
