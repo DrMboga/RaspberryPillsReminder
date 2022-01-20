@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/msg.h>
+#include <stdlib.h>
 #include "messaging.h"
 
 int sendLedMessage(int ledNumber, char* color[], char* action[]);
+int sendServoMessage(int angle);
 
 int main(int argc, char *argv[])
 {
@@ -38,6 +40,25 @@ int main(int argc, char *argv[])
             return 0;
         }
         if(sendLedMessage(ledNumber, &argv[3], &argv[4]) < 0)
+        {
+            perror("Could not send message to the queue!");
+        }
+    }
+
+    if(strcmp(argv[1], "servo") == 0)
+    {
+        if(argc != 3)
+        {
+            printf("Insufficient number of arguments\n");
+            return 0;
+        }
+        int angle = atoi(argv[2]);
+        if(angle < 0 || angle > 180)
+        {
+            printf("Wrong angle %d. It should be between 0 and 180\n", angle);
+            return 0;
+        }
+        if(sendServoMessage(angle) < 0)
         {
             perror("Could not send message to the queue!");
         }
@@ -90,4 +111,24 @@ int sendLedMessage(int ledNumber, char* color[], char* action[])
 
     // msgctl(messageQueueId, IPC_RMID, NULL);
     return 0;
+}
+
+int sendServoMessage(int angle)
+{
+    int messageQueueId = InitializeMessageQueue(SERVO_CONTROL_MESSAGE_TYPE);
+    if(messageQueueId == -1)
+    {
+        return -1;
+    }
+    printf("Successfully got messageQueueId: %d\n", messageQueueId);
+    struct ServoControlMsessage servoMessage;
+    servoMessage.mtype = SERVO_CONTROL_MESSAGE_TYPE;
+    servoMessage.angle = angle;
+
+    if(msgsnd(messageQueueId, (void*)&servoMessage, sizeof(servoMessage.angle), 0) < 0)
+    {
+        printf("msgsnd error !!\n");
+    }
+
+    return 0;    
 }

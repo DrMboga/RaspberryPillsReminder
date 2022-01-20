@@ -35,7 +35,7 @@ int main()
         return -1;
     }
 
-    // Initialize Message qeue
+    // Initialize Message queue
     int messageQueueId = InitializeMessageQueue(LED_CONTROL_MESSAGE_TYPE);
     
     if(messageQueueId >= 0)

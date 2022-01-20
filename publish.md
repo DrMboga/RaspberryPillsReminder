@@ -10,6 +10,10 @@ scp -r ./src/web-host/*.* pi@192.168.0.67:/home/pi/projects/pills-reminder
  ```bash
 gcc leds-service.c pins-mapping.c file-access.c leds.c utils.c messaging.c -o leds-service.out -l pigpio -l pthread
  ```
+ - Servo service
+ ```bash
+gcc servo-service.c file-access.c utils.c messaging.c -o servo-service.out -l wiringPi
+ ```
  - test message sender
  ```bash
 gcc message-sender.c messaging.c -o message-sender.out
@@ -20,14 +24,17 @@ gcc message-sender.c messaging.c -o message-sender.out
 # Copy service description to the systemd folder
 sudo cp leds.service /etc/systemd/system/leds.service
 sudo cp pills-webhost.service /etc/systemd/system/pills-webhost.service
+sudo cp servo.service /etc/systemd/system/servo.service
 # Restart daemon
 sudo systemctl daemon-reload
 # Start service
 sudo systemctl start leds.service
 sudo systemctl start pills-webhost.service
+sudo systemctl start servo.service
 # Enable auto start
 sudo systemctl enable leds.service
 sudo systemctl enable pills-webhost.service
+sudo systemctl enable servo.service
 
 
 sudo systemctl stop leds.service
