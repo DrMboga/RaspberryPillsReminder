@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
+#include <time.h>
 #include <unistd.h>
 #include <wiringPiI2C.h>
 
@@ -28,6 +28,11 @@ int main(int argc, char *argv[])
         if(strcmp(argv[1], "start") == 0)
         {
             StartMainProcess(gpioMessageQueueId);
+            return 0;
+        }
+        if(strcmp(argv[1], "tune") == 0)
+        {
+            StartTuningMode(gpioMessageQueueId);
             return 0;
         }
     }
@@ -69,20 +74,39 @@ int main(int argc, char *argv[])
 
 void StartMainProcess(int gpioMessageQueueId)
 {
+
+}
+
+void StartTuningMode(int gpioMessageQueueId)
+{
     int wiringPiHandle = wiringPiI2CSetup(0x23);
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 10; i++)
     {
         // Turn Laser on
         switchLaserOn(gpioMessageQueueId);
         sleepMilliseconds(100);
 
-        // Check the sensor
-        wiringPiI2CWrite(wiringPiHandle,0x10);
-        sleepMilliseconds(200);
-        int word=wiringPiI2CReadReg16(wiringPiHandle,0x00);
-        int lux=((word & 0xff00)>>8) | ((word & 0x00ff)<<8);
-        printf("Current illuminance in lux:%d \n",lux);
+        for (int i = 0; i < 10; i++)
+        {
+            // Check the sensor
+            wiringPiI2CWrite(wiringPiHandle,0x10);
+            sleepMilliseconds(200);
+            int word=wiringPiI2CReadReg16(wiringPiHandle,0x00);
+            int lux=((word & 0xff00)>>8) | ((word & 0x00ff)<<8);
+
+            // curent time
+            char currentTime[10];
+            time_t rawtime;
+            struct tm * timeinfo;
+            time ( &rawtime );
+            timeinfo = localtime ( &rawtime );
+            strftime(currentTime, 10, "%H:%M.%S", timeinfo);
+
+            printf("[%s] Current illuminance in lux:%d \n", currentTime, lux);
+            sleepMilliseconds(500);
+        }
+        
 
         // Turn Laser off
         switchLaserOff(gpioMessageQueueId);
