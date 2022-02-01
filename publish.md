@@ -43,6 +43,7 @@ sudo systemctl enable servo.service
 # Some service tune commands
 sudo systemctl stop leds.service
 sudo systemctl stop pills-webhost.service
+sudo systemctl stop servo.service
 sudo systemctl disable leds.service
 # Service logs
 sudo journalctl -u leds.service

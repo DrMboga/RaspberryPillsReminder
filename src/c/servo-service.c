@@ -58,8 +58,9 @@ int main()
             }
             printf("Received new message to turn servo motor on angle %d\n", received.angle);
 
-            SetServoAngle(received.angle);
+            SetServoAngleSlowly(servoAngle, received.angle);
             RewriteServoState(received.angle);
+            servoAngle = received.angle;
         }
         msgctl(messageQueueId, IPC_RMID, NULL);
     }
@@ -119,6 +120,38 @@ void SetServoAngle(int angle)
         // printf("Intensity %d: \n", intensity);
         softPwmWrite (PWM_pin, intensity);
         sleepMilliseconds(300);
+        softPwmWrite (PWM_pin, 0);
+    }
+}
+
+/*
+* Turns the servo motor slowly
+*/
+void SetServoAngleSlowly(int initialAngle, int desiredAngle)
+{
+    int startIntensity = 0;
+    int endIntensity = 0;
+    if( desiredAngle >= 0 && desiredAngle <= 180) 
+    {
+        startIntensity = (int) (4 + (initialAngle * 20 / 180));
+        endIntensity = (int) (4 + (desiredAngle * 20 / 180));
+        if((endIntensity > startIntensity))
+        {
+            for (int i = startIntensity; i <= endIntensity; i++)
+            {
+                softPwmWrite (PWM_pin, i);
+                sleepMilliseconds(400);
+            }
+        }
+        else
+        {
+            for (int i = startIntensity; i >= endIntensity; i--)
+            {
+                softPwmWrite (PWM_pin, i);
+                sleepMilliseconds(400);
+            }
+        }
+        
         softPwmWrite (PWM_pin, 0);
     }
 }

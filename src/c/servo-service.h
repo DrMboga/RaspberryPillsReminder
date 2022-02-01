@@ -12,6 +12,11 @@ int ReadServoState();
 void SetServoAngle(int angle);
 
 /*
+* Turns the servo motor slowly
+*/
+void SetServoAngleSlowly(int initialAngle, int desiredAngle);
+
+/*
 * Writes a new angle value to the file
 */
 void RewriteServoState(int angle);
