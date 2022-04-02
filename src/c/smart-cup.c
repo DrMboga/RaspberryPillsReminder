@@ -95,6 +95,7 @@ void StartMainProcess(int gpioMessageQueueId)
         {
             printf("Pill is taken \n");
             sendCommandToTurnGreenLED(cupState->pillNumber);
+            saveReportRow(cupState->pillNumber, 1);
             cupState->state = CUP_STATE_PILL_INITIAL;
             if (cupState->pillNumber == PILLS_COUNT - 1)
             {
@@ -106,7 +107,6 @@ void StartMainProcess(int gpioMessageQueueId)
             }
             RewriteCupState(cupState);
 
-            // TODO: Write line to journal
             break;
         }
         else
@@ -338,6 +338,21 @@ struct ServoAngleMap *ReadServoMapping()
     CloseFile(anglesFilePointer);
 
     return angles;
+}
+
+/*
+ * Adds a row to report file
+ */
+void saveReportRow(int pillNumber, int successfully)
+{
+    FILE *reportFilePointer = OpenFileForAppend(REPORT_FILE_NAME);
+    char *todayString = today();
+
+    if (fprintf(reportFilePointer, "%d\t%d\t%21s\n", pillNumber, successfully, todayString) < 0)
+    {
+        printf("Write operaion failed");
+    }
+    CloseFile(reportFilePointer);
 }
 #pragma endregion
 

@@ -1,5 +1,6 @@
 static const char CUP_STATE_FILE_NAME[] = "cup-state.csv"; // File name with the cup state
 static const char ANGLES_MAP_FILE_NAME[] = "angles.csv";   // File name with the servo angles mapping
+static const char REPORT_FILE_NAME[] = "report.csv";       // File name with the report
 
 #define PILLS_COUNT 7
 
@@ -83,3 +84,8 @@ int sendLEDMessage(int ledNumber, int action, int color);
  * Checks if cup is empty
  */
 int isCupEmpty(int gpioMessageQueueId);
+
+/*
+ * Adds a row to report file
+ */
+void saveReportRow(int pillNumber, int successfully);
