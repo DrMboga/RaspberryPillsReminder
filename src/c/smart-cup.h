@@ -10,6 +10,8 @@ static const char ANGLES_MAP_FILE_NAME[] = "angles.csv";   // File name with the
 #define CUP_STATE_PILL_TAKEN 4                           // Pill has taken, signal to turn green LED has sent, the row has added to the journal
 #define CUP_ERROR_STATE_PILL_NOT_TAKEN -5                // Error state - at 20:00 pill is still in the cup, the signal to turn red LED has sent, the row has added to the journal
 
+#define GATE_ILLUMINANCE 50000 // The border value for light sensor. If current illuminance is greater then this value or equal, it means that laser is directly points to the sensor
+
 /*
  * Csv smart cup state file data row structure
  */
@@ -48,7 +50,7 @@ int RewriteCupState(struct CupStateRow *ledsState);
 /*
  * Desides which action to perform with the cup current state
  */
-int MoveToTheNextState(int currentState, int pillNumber);
+int MoveToTheNextState(int currentState, int pillNumber, int gpioMessageQueueId);
 
 /*
  * Sends command to move servo.
@@ -76,3 +78,8 @@ int sendCommandToBlinkRedLED(int ledNumber);
 int sendCommandToTurnGreenLED(int ledNumber);
 
 int sendLEDMessage(int ledNumber, int action, int color);
+
+/*
+ * Checks if cup is empty
+ */
+int isCupEmpty(int gpioMessageQueueId);

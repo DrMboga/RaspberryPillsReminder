@@ -86,11 +86,35 @@ void StartMainProcess(int gpioMessageQueueId)
 
     while (1)
     {
-        int nextState = MoveToTheNextState(cupState->state, cupState->pillNumber);
+        int nextState = MoveToTheNextState(cupState->state, cupState->pillNumber, gpioMessageQueueId);
         printf("Action to perform %d \n", nextState);
-        // TODO:  Perform some action with cupState regarding nextState
-        RewriteCupState(cupState);
-        sleepMilliseconds(500);
+        char *todayString = today();
+        strcpy(cupState->time, todayString);
+        cupState->state = nextState;
+        if (nextState == CUP_STATE_PILL_TAKEN)
+        {
+            printf("Pill is taken \n");
+            sendCommandToTurnGreenLED(cupState->pillNumber);
+            cupState->state = CUP_STATE_PILL_INITIAL;
+            if (cupState->pillNumber == PILLS_COUNT - 1)
+            {
+                cupState->pillNumber = 0;
+            }
+            else
+            {
+                cupState->pillNumber = cupState->pillNumber + 1;
+            }
+            RewriteCupState(cupState);
+
+            // TODO: Write line to journal
+            break;
+        }
+        else
+        {
+            RewriteCupState(cupState);
+            // TODO: check current time. If it is 20:00, then write error to journal, send red light to LED
+        }
+        sleepMilliseconds(1000);
     }
 
     free(cupState);
@@ -99,23 +123,39 @@ void StartMainProcess(int gpioMessageQueueId)
 /*
  * Desides which action to perform with the cup current state
  */
-int MoveToTheNextState(int currentState, int pillNumber)
+int MoveToTheNextState(int currentState, int pillNumber, int gpioMessageQueueId)
 {
+    int isEmpty;
     switch (currentState)
     {
     case CUP_STATE_PILL_INITIAL:
         printf("Current state is 'initial'. Pill number %d\n", pillNumber);
         MoveServo(pillNumber);
         sendCommandToBlinkRedLED(pillNumber);
-        /* Move servo, send signal to blink a LED, check cup. Result - CUP_STATE_PILL_DROPPED_AND_INSIDE or CUP_ERROR_STATE_PILL_DROPPED_BUT_CUP_IS_EMPTY */
-        break;
+        isEmpty = isCupEmpty(gpioMessageQueueId);
+        if (isEmpty)
+        {
+            return CUP_ERROR_STATE_PILL_DROPPED_BUT_CUP_IS_EMPTY;
+        }
+        return CUP_STATE_PILL_DROPPED_AND_INSIDE;
     case CUP_STATE_PILL_DROPPED_AND_INSIDE:
-        /* Check if cup is empty. Result - CUP_STATE_PILL_TAKEN or CUP_STATE_PILL_DROPPED_AND_INSIDE */
+        printf("Current state is 'pill is inside'. Pill number %d\n", pillNumber);
+        isEmpty = isCupEmpty(gpioMessageQueueId);
+        if (isEmpty)
+        {
+            return CUP_STATE_PILL_TAKEN;
+        }
+        return CUP_STATE_PILL_DROPPED_AND_INSIDE;
         break;
     case CUP_ERROR_STATE_PILL_DROPPED_BUT_CUP_IS_EMPTY:
-        /* Check cup. Result - CUP_STATE_PILL_DROPPED_AND_INSIDE or CUP_ERROR_STATE_PILL_DROPPED_BUT_CUP_IS_EMPTY */
-        break;
-    default:
+        printf("Current state is 'error - pill should be inside'. Pill number %d\n", pillNumber);
+        isEmpty = isCupEmpty(gpioMessageQueueId);
+        if (isEmpty)
+        {
+            return CUP_ERROR_STATE_PILL_DROPPED_BUT_CUP_IS_EMPTY;
+        }
+        return CUP_STATE_PILL_DROPPED_AND_INSIDE;
+    default: // TODO: add state if previous day pill is not taken
         break;
     }
 }
@@ -245,11 +285,11 @@ struct CupStateRow *ReadCupState()
 /*
  * Writes a new Cup state into csv file
  */
-int RewriteCupState(struct CupStateRow *ledsState)
+int RewriteCupState(struct CupStateRow *cupState)
 {
     FILE *cupStateFilePointer = OpenFileForRewrite(CUP_STATE_FILE_NAME);
 
-    if (fprintf(cupStateFilePointer, "%d\t%d\t%21s\n", ledsState->pillNumber, ledsState->state, ledsState->time) < 0)
+    if (fprintf(cupStateFilePointer, "%d\t%d\t%21s\n", cupState->pillNumber, cupState->state, cupState->time) < 0)
     {
         printf("Write operaion failed");
         return -1;
@@ -328,6 +368,7 @@ int sendServoMessage(int angle)
 #pragma endregion
 
 #pragma region LED control
+
 /*
  * Sends command to blink LED red
  */
@@ -368,4 +409,53 @@ int sendLEDMessage(int ledNumber, int action, int color)
     return 0;
 }
 
+#pragma endregion
+
+#pragma region Cup logic
+/*
+ * Checks if cup is empty
+ */
+int isCupEmpty(int gpioMessageQueueId)
+{
+    int laserTurnsOnCount = 5;
+    int sensorChecksCount = 5;
+    int luxGateOverheadedTimes = 0;
+    int wiringPiHandle = wiringPiI2CSetup(0x23);
+
+    for (int i = 0; i < laserTurnsOnCount; i++)
+    {
+        // Turn Laser on
+        switchLaserOn(gpioMessageQueueId);
+        sleepMilliseconds(100);
+
+        for (int i = 0; i < sensorChecksCount; i++)
+        {
+            // Check the sensor
+            wiringPiI2CWrite(wiringPiHandle, 0x10);
+            sleepMilliseconds(200);
+            int word = wiringPiI2CReadReg16(wiringPiHandle, 0x00);
+            int lux = ((word & 0xff00) >> 8) | ((word & 0x00ff) << 8);
+
+            if (lux >= GATE_ILLUMINANCE)
+            {
+                luxGateOverheadedTimes++;
+            }
+            printf("Current illuminance in lux:%d \n", lux);
+        }
+
+        // Turn Laser off
+        switchLaserOff(gpioMessageQueueId);
+        sleepMilliseconds(1000);
+    }
+
+    // If sensor fixed illuminance greater then gate more than 70% times, then the cup is empty.
+    double seventyPercent = ((double)laserTurnsOnCount) * ((double)sensorChecksCount) * 0.7;
+    if (((double)luxGateOverheadedTimes) >= seventyPercent)
+    {
+        printf("Cup is empty \n");
+        return 1; // cup is empty
+    }
+    printf("Cup is not empty \n");
+    return 0; // cup is not empty
+}
 #pragma endregion
