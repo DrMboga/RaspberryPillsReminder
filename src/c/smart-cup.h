@@ -13,6 +13,8 @@ static const char REPORT_FILE_NAME[] = "report.csv";       // File name with the
 
 #define GATE_ILLUMINANCE 50000 // The border value for light sensor. If current illuminance is greater then this value or equal, it means that laser is directly points to the sensor
 
+#define STOP_HOUR 20
+
 /*
  * Csv smart cup state file data row structure
  */
@@ -72,6 +74,11 @@ int sendServoMessage(int angle);
  * Sends command to blink LED red
  */
 int sendCommandToBlinkRedLED(int ledNumber);
+
+/*
+ * Sends command to turn on LED red
+ */
+int sendCommandToTurnRedLED(int ledNumber);
 
 /*
  * Sends command to turn on LED green

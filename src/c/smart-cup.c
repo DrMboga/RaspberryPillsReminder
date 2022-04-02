@@ -111,8 +111,25 @@ void StartMainProcess(int gpioMessageQueueId)
         }
         else
         {
+            int hour = hourOfTheDay();
+            if (hour >= STOP_HOUR)
+            {
+                printf("Pill not taken \n");
+                cupState->state = CUP_ERROR_STATE_PILL_NOT_TAKEN;
+                sendCommandToTurnRedLED(cupState->pillNumber);
+                saveReportRow(cupState->pillNumber, 0);
+                if (cupState->pillNumber == PILLS_COUNT - 1)
+                {
+                    cupState->pillNumber = 0;
+                }
+                else
+                {
+                    cupState->pillNumber = cupState->pillNumber + 1;
+                }
+                RewriteCupState(cupState);
+                break;
+            }
             RewriteCupState(cupState);
-            // TODO: check current time. If it is 20:00, then write error to journal, send red light to LED
         }
         sleepMilliseconds(1000);
     }
@@ -155,7 +172,16 @@ int MoveToTheNextState(int currentState, int pillNumber, int gpioMessageQueueId)
             return CUP_ERROR_STATE_PILL_DROPPED_BUT_CUP_IS_EMPTY;
         }
         return CUP_STATE_PILL_DROPPED_AND_INSIDE;
-    default: // TODO: add state if previous day pill is not taken
+    case CUP_ERROR_STATE_PILL_NOT_TAKEN:
+        printf("Current state is 'error - pill not taken'. Pill number %d\n", pillNumber);
+        sendCommandToBlinkRedLED(pillNumber);
+        isEmpty = isCupEmpty(gpioMessageQueueId);
+        if (isEmpty)
+        {
+            return CUP_ERROR_STATE_PILL_DROPPED_BUT_CUP_IS_EMPTY;
+        }
+        return CUP_STATE_PILL_DROPPED_AND_INSIDE;
+    default:
         break;
     }
 }
@@ -400,6 +426,14 @@ int sendCommandToTurnGreenLED(int ledNumber)
     return sendLEDMessage(ledNumber, LED_ON, GREEN_LED);
 }
 
+/*
+ * Sends command to turn on LED red
+ */
+int sendCommandToTurnRedLED(int ledNumber)
+{
+    return sendLEDMessage(ledNumber, LED_ON, RED_LED);
+}
+
 int sendLEDMessage(int ledNumber, int action, int color)
 {
     int messageQueueId = InitializeMessageQueue(LED_CONTROL_MESSAGE_TYPE);
@@ -432,7 +466,7 @@ int sendLEDMessage(int ledNumber, int action, int color)
  */
 int isCupEmpty(int gpioMessageQueueId)
 {
-    int laserTurnsOnCount = 5;
+    int laserTurnsOnCount = 3;
     int sensorChecksCount = 5;
     int luxGateOverheadedTimes = 0;
     int wiringPiHandle = wiringPiI2CSetup(0x23);

@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void sleepMilliseconds(int milliseconds) {
+void sleepMilliseconds(int milliseconds)
+{
     struct timespec ts;
     int res;
 
@@ -12,24 +13,33 @@ void sleepMilliseconds(int milliseconds) {
     res = nanosleep(&ts, &ts);
 }
 
-char* today()
+char *today()
 {
-    char* currentTime = malloc(21);
+    char *currentTime = malloc(21);
     time_t rawtime;
-    struct tm * timeinfo;
-    time ( &rawtime );
-    timeinfo = localtime ( &rawtime );
+    struct tm *timeinfo;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
     strftime(currentTime, 21, "%d.%m.%Y %H:%M.%S", timeinfo);
     return currentTime;
 }
 
-char* nowTimeWithSeconds()
+char *nowTimeWithSeconds()
 {
-    char* currentTime = malloc(10);
+    char *currentTime = malloc(10);
     time_t rawtime;
-    struct tm * timeinfo;
-    time ( &rawtime );
-    timeinfo = localtime ( &rawtime );
+    struct tm *timeinfo;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
     strftime(currentTime, 10, "%H:%M.%S", timeinfo);
     return currentTime;
+}
+
+int hourOfTheDay()
+{
+    time_t rawtime;
+    struct tm *timeinfo;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    return timeinfo->tm_hour;
 }
