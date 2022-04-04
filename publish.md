@@ -69,5 +69,11 @@ chown root message-sender.out
 # Cron setup
 
 ```bash
-crontab -e
+sudo crontab -e
+```
+
+45 6 \* \* \* /home/pi/projects/pills-reminder/message-sender.out start > /home/pi/cron_log.txt 2>&1
+
+```bash
+sudo crontab -l
 ```
