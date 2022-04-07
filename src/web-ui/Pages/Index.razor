@@ -2,6 +2,54 @@
 @inherits IndexBase
 <PageTitle>Pills reminder</PageTitle>
 
-<h1>Hello, world!</h1>
+@if (ServoAngle != null)
+{
+    <p>Servo angle is @ServoAngle degrees.</p>
+}
 
-Welcome to your new app.
+@if (Leds != null)
+{
+    <p>Leds state:</p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>LedNumber</th>
+                <th>State</th>
+                <th>DateChange</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var ledState in Leds)
+            {
+                <tr>
+                    <td>@ledState.LedNumber</td>
+                    <td>@ledState.State</td>
+                    <td>@ledState.DateChange</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@if (Report != null)
+{
+    <p>Pills report:</p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>PillNumber</th>
+                <th>Success</th>
+                <th>DateTaken</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var reportItem in Report)
+            {
+                <tr>
+                    <td>@reportItem.PillNumber</td>
+                    <td>@reportItem.Success</td>
+                    <td>@reportItem.DateTaken.ToString("dd.MM.yyyy HH:mm")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

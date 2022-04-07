@@ -1,4 +1,11 @@
 namespace web_ui.model
 {
-    public record Report(int PillNumber, bool Success, DateTime DateTaken);
+    public class Report
+    {
+        public int PillNumber { get; set; }
+
+        public bool Success { get; set; }
+
+        public DateTime DateTaken { get; set; }
+    }
 }

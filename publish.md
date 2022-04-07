@@ -4,6 +4,7 @@
 
 ```bash
 scp -r ./src/c/*.* pi@192.168.0.67:/home/pi/projects/pills-reminder
+scp -r pi@192.168.0.67:/home/pi/projects/pills-reminder/*.* ./src/backup
 scp -r ./src/web-host/*.* pi@192.168.0.67:/home/pi/projects/pills-reminder
 ```
 
@@ -56,11 +57,14 @@ sudo systemctl enable smart-cup.service
 sudo systemctl stop leds.service
 sudo systemctl stop pills-webhost.service
 sudo systemctl stop servo.service
+sudo systemctl stop smart-cup.service
 sudo systemctl disable leds.service
 # Service logs
 sudo journalctl -u leds.service
+sudo journalctl -u smart-cup.service
 # Services list
 sudo systemctl list-units --type=service --all
+(q for exit)
 
 # Change execute permissions
 chown root message-sender.out

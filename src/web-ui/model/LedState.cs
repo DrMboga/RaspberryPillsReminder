@@ -1,4 +1,11 @@
 namespace web_ui.model
 {
-    public record LedState(int LedNumber, LedAction state, DateTime DateChange);
+    public class LedState
+    {
+        public int LedNumber { get; set; }
+
+        public LedAction State { get; set; }
+
+        public string? DateChange { get; set; }
+    }
 }

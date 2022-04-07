@@ -1,3 +1,4 @@
+using web_ui.helpers;
 using web_ui.model;
 
 namespace web_ui.Services
@@ -5,6 +6,12 @@ namespace web_ui.Services
     public class Backend : IBackend
     {
         const string report = "report.csv";
+        const string ledsState = "leds-state.csv";
+        const string servoState = "servo-state.csv";
+        const string startCommand = "start";
+        const string ledOffCommand = "led/{0}/green/off";
+        const string setServoCommand = "servo/{0}";
+
         private HttpClient _http { get; }
 
         public Backend(HttpClient http)
@@ -13,40 +20,42 @@ namespace web_ui.Services
 
         }
 
-        public Task<List<LedState>> GetLedsState()
+        public async Task<List<LedState>> GetLedsState()
         {
-            throw new NotImplementedException();
+            var httpResult = await _http.GetStringAsync(ledsState);
+
+            return httpResult.ParseCsvToCollection<LedState>();
         }
 
         public async Task<List<Report>> GetReport()
         {
-            var result = new List<Report>();
-
             var httpResult = await _http.GetStringAsync(report);
 
-            Console.WriteLine(httpResult);
-
-            return result;
+            return httpResult.ParseCsvToCollection<Report>();
         }
 
-        public Task<int> GetServoAngle()
+        public async Task<int> GetServoAngle()
         {
-            throw new NotImplementedException();
+            var httpResult = await _http.GetStringAsync(servoState);
+            return int.Parse(httpResult);
+
         }
 
         public Task MoveServo(int angle)
         {
-            throw new NotImplementedException();
+            var command = string.Format(setServoCommand, angle);
+            return _http.PostAsync(command, null);
         }
 
         public Task StartNewProcess()
         {
-            throw new NotImplementedException();
+            return _http.PostAsync(startCommand, null);
         }
 
         public Task SwitchLedOff(int ledNumber)
         {
-            throw new NotImplementedException();
+            var command = string.Format(ledOffCommand, ledNumber);
+            return _http.PostAsync(command, null);
         }
     }
 }
