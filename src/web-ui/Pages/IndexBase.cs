@@ -7,7 +7,7 @@ namespace web_ui.Pages
     public class IndexBase : ComponentBase
     {
         [Inject]
-        public IBackend BackendService { get; set; }
+        public IBackend? BackendService { get; set; }
 
         public List<Report>? Report { get; set; }
         public List<LedState>? Leds { get; set; }
@@ -16,11 +16,40 @@ namespace web_ui.Pages
 
         protected override async Task OnInitializedAsync()
         {
+            if (BackendService == null)
+            {
+                return;
+            }
             Report = await BackendService.GetReport();
             Report = Report.OrderByDescending(r => r.DateTaken).ToList();
             Leds = await BackendService.GetLedsState();
             Leds = Leds.OrderBy(l => l.LedNumber).ToList();
             ServoAngle = await BackendService.GetServoAngle();
+        }
+
+        public async Task StartNewProcess()
+        {
+            if (BackendService != null)
+            {
+                Console.WriteLine("Start new process");
+                await BackendService.StartNewProcess();
+            }
+
+        }
+
+        public void OnServoAngleInput(string step)
+        {
+            ServoAngle = Convert.ToInt32(step);
+        }
+
+        public async Task OnServoAngleChanged(string newServoAngle)
+        {
+            ServoAngle = Convert.ToInt32(newServoAngle);
+            if (ServoAngle.HasValue && BackendService != null)
+            {
+                Console.WriteLine($"New Servo value {ServoAngle}");
+                await BackendService.MoveServo(ServoAngle.Value);
+            }
         }
     }
 }

@@ -2,13 +2,23 @@
 @inherits IndexBase
 <PageTitle>Pills reminder</PageTitle>
 
+<div class="container text-center">
+    <button type="button" class="btn btn-primary" @onclick="StartNewProcess">Sart new process</button>
+</div>
+
 @if (ServoAngle != null)
 {
-    <p>Servo angle is @ServoAngle degrees.</p>
+    <hr>
+    <label for="servoRange" class="form-label">Servo angle @ServoAngle °</label>
+    <input type="range" class="form-range" id="servoRange" min="0" max="180" step="5" value="@ServoAngle"
+    @oninput="@((args) => OnServoAngleInput(args.Value.ToString()))"
+    @onchange="@((args) => OnServoAngleChanged(args.Value.ToString()))">
 }
 
 @if (Leds != null)
 {
+    <hr>
+
     <p>Leds state:</p>
     <table class="table">
         <thead>
@@ -32,6 +42,8 @@
 }
 @if (Report != null)
 {
+    <hr>
+
     <p>Pills report:</p>
     <table class="table">
         <thead>
