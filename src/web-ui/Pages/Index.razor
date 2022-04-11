@@ -53,23 +53,20 @@
 }
 @if (Report != null)
 {
-        <p>Pills report:</p>
+        <p>Hisory:</p>
         <table class="table">
-            <thead>
-                <tr>
-                    <th>PillNumber</th>
-                    <th>Success</th>
-                    <th>DateTaken</th>
-                </tr>
-            </thead>
             <tbody>
             @foreach (var reportItem in Report)
             {
-                        <tr>
-                            <td>@reportItem.PillNumber</td>
-                            <td>@reportItem.Success</td>
-                            <td>@reportItem.DateTaken.ToString("dd.MM.yyyy HH:mm")</td>
-                        </tr>
+                <tr>
+                    <td>@WeekDay(reportItem.PillNumber)</td>
+                    <td>
+                        <div class="led-box">
+                            <div class="@(reportItem.Success ? LedClass(LedAction.GreenOn) : LedClass(LedAction.RedOn))"></div>
+                        </div>
+                    </td>
+                    <td>@reportItem.DateTaken.ToString("dd.MM.yyyy HH:mm")</td>
+                </tr>
             }
             </tbody>
         </table>

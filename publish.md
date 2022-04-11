@@ -4,8 +4,9 @@
 
 ```bash
 scp -r ./src/c/*.* pi@192.168.0.67:/home/pi/projects/pills-reminder
-scp -r pi@192.168.0.67:/home/pi/projects/pills-reminder/*.* ./src/backup
 scp -r ./src/web-host/*.* pi@192.168.0.67:/home/pi/projects/pills-reminder
+
+scp -r pi@192.168.0.67:/home/pi/projects/pills-reminder/*.* ./src/backup
 ```
 
 - leds service compile
@@ -80,4 +81,19 @@ sudo crontab -e
 
 ```bash
 sudo crontab -l
+```
+
+# Web UI setup
+
+```bash
+cd src/web-ui
+dotnet publish
+scp -r ./bin/Debug/net6.0/publish/wwwroot/*.* pi@192.168.0.67:/home/pi/projects/pills-reminder
+scp -r ./bin/Debug/net6.0/publish/wwwroot/_framework/*.* pi@192.168.0.67:/home/pi/projects/pills-reminder/_framework
+scp -r ./bin/Debug/net6.0/publish/wwwroot/css/*.* pi@192.168.0.67:/home/pi/projects/pills-reminder/css
+scp -r ./bin/Debug/net6.0/publish/wwwroot/css/bootstrap/*.* pi@192.168.0.67:/home/pi/projects/pills-reminder/css/bootstrap
+scp -r ./bin/Debug/net6.0/publish/wwwroot/css/open-iconic/*.* pi@192.168.0.67:/home/pi/projects/pills-reminder/css/open-iconic
+scp -r ./bin/Debug/net6.0/publish/wwwroot/css/open-iconic/font/css/*.* pi@192.168.0.67:/home/pi/projects/pills-reminder/css/open-iconic/font/css
+scp -r ./bin/Debug/net6.0/publish/wwwroot/css/open-iconic/font/fonts/*.* pi@192.168.0.67:/home/pi/projects/pills-reminder/css/open-iconic/font/fonts
+
 ```
