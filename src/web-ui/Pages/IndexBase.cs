@@ -51,5 +51,52 @@ namespace web_ui.Pages
                 await BackendService.MoveServo(ServoAngle.Value);
             }
         }
+
+        public string WeekDay(int index)
+        {
+            switch (index)
+            {
+                case 0:
+                    return "Mo";
+                case 1:
+                    return "Tu";
+                case 2:
+                    return "We";
+                case 3:
+                    return "Th";
+                case 4:
+                    return "Fr";
+                case 5:
+                    return "Sa";
+                case 6:
+                    return "Su";
+            }
+            return string.Empty;
+        }
+
+        public string LedClass(LedAction action)
+        {
+            switch (action)
+            {
+                case LedAction.GreenOn:
+                    return "led-green";
+                case LedAction.RedOn:
+                    return "led-red-not-blink";
+                case LedAction.RedBlink:
+                    return "led-red";
+                default:
+                    return "led-off";
+            }
+        }
+
+        public async Task SwitchLedOff(int ledNumber)
+        {
+            if (BackendService != null)
+            {
+                Console.WriteLine($"Switch off LED {ledNumber}");
+                await BackendService.SwitchLedOff(ledNumber);
+            }
+
+        }
     }
 }

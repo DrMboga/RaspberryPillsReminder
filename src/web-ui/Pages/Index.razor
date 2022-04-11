@@ -8,60 +8,69 @@
 
 @if (ServoAngle != null)
 {
-    <hr>
-    <label for="servoRange" class="form-label">Servo angle @ServoAngle °</label>
-    <input type="range" class="form-range" id="servoRange" min="0" max="180" step="5" value="@ServoAngle"
+        <hr>
+        <label for="servoRange" class="form-label">Servo angle @ServoAngle °</label>
+        <input type="range" class="form-range" id="servoRange" min="0" max="180" step="5" value="@ServoAngle"
     @oninput="@((args) => OnServoAngleInput(args.Value.ToString()))"
     @onchange="@((args) => OnServoAngleChanged(args.Value.ToString()))">
 }
 
 @if (Leds != null)
 {
-    <hr>
-
-    <p>Leds state:</p>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>LedNumber</th>
-                <th>State</th>
-                <th>DateChange</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var ledState in Leds)
-            {
+        <hr>
+        <table class="table">
+            <thead>
                 <tr>
-                    <td>@ledState.LedNumber</td>
-                    <td>@ledState.State</td>
-                    <td>@ledState.DateChange</td>
+                @foreach (var ledState in Leds)
+                {
+                    <th class="text-center">
+                        @WeekDay(ledState.LedNumber)
+                    </th>
+                }
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                <tr>
+                @foreach (var ledState in Leds)
+                {
+                    <td>
+                        <div class="led-box" @onclick="() => SwitchLedOff(ledState.LedNumber)" >
+                            <div class="@(LedClass(ledState.State))"></div>
+                        </div>
+                    </td>
+                }
+                </tr>
+                <tr>
+                @foreach (var ledState in Leds)
+                {
+                    <td class="text-center led-time">
+                        @ledState.DateChange
+                    </td>
+                }
+                </tr>
+            </tbody>
+        </table>
 }
 @if (Report != null)
 {
-    <hr>
-
-    <p>Pills report:</p>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>PillNumber</th>
-                <th>Success</th>
-                <th>DateTaken</th>
-            </tr>
-        </thead>
-        <tbody>
+        <p>Pills report:</p>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>PillNumber</th>
+                    <th>Success</th>
+                    <th>DateTaken</th>
+                </tr>
+            </thead>
+            <tbody>
             @foreach (var reportItem in Report)
             {
-                <tr>
-                    <td>@reportItem.PillNumber</td>
-                    <td>@reportItem.Success</td>
-                    <td>@reportItem.DateTaken.ToString("dd.MM.yyyy HH:mm")</td>
-                </tr>
+                        <tr>
+                            <td>@reportItem.PillNumber</td>
+                            <td>@reportItem.Success</td>
+                            <td>@reportItem.DateTaken.ToString("dd.MM.yyyy HH:mm")</td>
+                        </tr>
             }
-        </tbody>
-    </table>
+            </tbody>
+        </table>
 }
