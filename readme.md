@@ -35,25 +35,25 @@ Looks like a good plan. Let’s do it 😊
 - Digital Light sensor [BH1750](https://www.berrybase.de/en/sensors-modules/light/bh1750-digitaler-lichtsensor)
 - 7 LEDs [(3-pin bi-color)](https://www.berrybase.de/bauelemente/aktive-bauelemente/leds/led-sortimente/5mm-led-set-70-st-252-ck)
 - Some resistors, plates, 2N2222A transistor and soldering skills 😊
-  ![All parts](https://github.com/DrMboga/RaspberryPillsReminder/blob/main/media/IMG_4516.png)
+![All parts](https://github.com/DrMboga/RaspberryPillsReminder/blob/main/media/IMG_4516.png)
   First, we need to [set up our Pi](https://projects.raspberrypi.org/en/projects/raspberry-pi-getting-started). Light sensor will use I2C protocol. Don't forget to [turn it on](https://www.raspberrypi-spy.co.uk/2014/11/enabling-the-i2c-interface-on-the-raspberry-pi/).
   Second, we need to connect everything together using a [40-pin port](https://pinout.xyz/pinout/3v3_power).
 
 1.  Light sensor uses the i2c protocol. So, it will use only 4 pins. Pin VCC - to 3,3 V power; Pin SDA to GPIO2; Pin SDL to GPIO3; Pins Add and Gnd to Ground.
-    ![Light sensor scheme](https://github.com/DrMboga/RaspberryPillsReminder/blob/main/media/Schemes-Light-sensor.png)
+![Light sensor scheme](https://github.com/DrMboga/RaspberryPillsReminder/blob/main/media/Schemes-Light-sensor.png)
 
 2.  Servo motor will be controlled via PWD (Pulse Width Modulation). So, it has only 3 pins. Red pin should be connected to +5V pin, black one - to the ground, and yellow one - to any GPIO pin which we will use programmatically to set up the pulse. In our case we will take GPIO18
-    ![Servo motor scheme](https://github.com/DrMboga/RaspberryPillsReminder/blob/main/media/Schemes-Servo.png)
+![Servo motor scheme](https://github.com/DrMboga/RaspberryPillsReminder/blob/main/media/Schemes-Servo.png)
 3.  LEDs. A Normal LED has 2 pins - ground and +3,3V. Using it with Raspberry is simple: ground is connected to the ground, and +3,3V - to any GPIO pin. To control the LED programmatically, you should use the Wiring Pi library or any other. And set 0 to switch LED off and 1 to switch it on. But in our case we want each of 7 LEDs to light green or red. That’s why we will use bi-color LEDs with common anode. This LED has 3 pins. One of them is anode and should be connected to the +3,3V pin. Other 2 pins are cathodes, one of them for green and one for red. LED is switched off if all 3 pins have + 3.3V. If one cathode has 0, LED lights green for example. This scheme describes the difference:
-    ![Leds connection](https://github.com/DrMboga/RaspberryPillsReminder/blob/main/media/Schemes-Leds_Example.png)
+![Leds connection](https://github.com/DrMboga/RaspberryPillsReminder/blob/main/media/Schemes-Leds_Example.png)
     And in our case we will need 7 LEDs:
-    ![Leds connection2](https://github.com/DrMboga/RaspberryPillsReminder/blob/main/media/Schemes-LEDs.png)
+![Leds connection2](https://github.com/DrMboga/RaspberryPillsReminder/blob/main/media/Schemes-LEDs.png)
     And here we should proof our soldering skills:
     | | |
     |---|----|
     |![Soldered LEDs1](https://github.com/DrMboga/RaspberryPillsReminder/blob/main/media/solderedLeds1.png) |![Soldered LEDs2](https://github.com/DrMboga/RaspberryPillsReminder/blob/main/media/solderedLeds2.png)|
 4.  Technically the laser is diode and can be controlled the same way as LED. But the problem is that it needs to be connected in a 5V circuit. But all Raspberry GPIO pins which are controlled programmatically can switch on only +3.3V. Hopefully, Raspberry Pi has +5V pin but it always switches on and can not be controlled programmatically. So, we need some switcher which should connect and disconnect the 5V circuit with the laser using +3.3V GPIO pin. The NPN silicon junction transistor. [2N2222A](https://en.m.wikipedia.org/wiki/2N2222) will fit our needs. So, the electronic scheme will look like this:
-    ![Laser scheme](https://github.com/DrMboga/RaspberryPillsReminder/blob/main/media/Schemes-Laser.png)
+![Laser scheme](https://github.com/DrMboga/RaspberryPillsReminder/blob/main/media/Schemes-Laser.png)
     The 5V circuit is opened or closed via the collector-emitter junction. When GPIO4 programmatically is set to 1, then +3.3V creates the base-emitter current. At this point the transistor is “opened” which means the laser is switched on. If GPIO4 is set to 0, there is no base-emitter current. Transistor is “closed” which means the laser is off.
     And again, we need to solder this scheme:
     | | |
@@ -70,11 +70,13 @@ Ok, now we have all parts soldered and connected. It’s time to assemble it:
 
 We did a great job. Our pills reminder is almost ready to use. Now we have to teach it how to use all those things we connected to Raspberry Pi pins. The Raspberry community already prepared for us some basic things. We will need 2 libraries. PiGPIO we will use to communicate with GPIO pins - set up 0 or +3.3V on each pin. This feature we will use to switch on and off lasers and LEDs. Also this library can send pulses to GPIO pins. This library will be used to operate the servo motor. Another library called WiringPi will help us to communicate with the light sensor via i2c protocol. Both libraries are written in C. And both can be used in C/C++ and Python programs. And these libraries are already included in standard Raspberry Pi OS. As well as gcc compiler and Python runtime. So, we don’t need to do some extra steps to set up our Raspberry Pi. We just can start to write code.
 Of course these libraries have been ported to modern frameworks as well. And my first idea was to use .Net core because I’m familiar with it. But our version of Raspberry Pi is very specific. First, it has only 512 MB RAM. And second, Microsoft does not have .net runtime version for this particular CPU architecture. And there is no official Node package for Pi Zero as well. There are only Python and C left. And guess what? It’s time to remember the word “pointer”😊
+
 ![Pointer meme](https://github.com/DrMboga/RaspberryPillsReminder/blob/main/media/pointer-meme.png)
 
 ### Architecture
 
 Raspberry Pi OS is the Linux system. And Linux has a built-in message queue for communicating between processes. This will be our key point to build the distributed loosely coupled application 😊
+
 ![Architecture](https://github.com/DrMboga/RaspberryPillsReminder/blob/main/media/Schemes-Architecture.png)
 Actually we will create 3 different applications which will be running as separate processes. Each application will be deployed as a service using Linux system daemon and will start after the system boot.
 
